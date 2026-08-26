@@ -1,0 +1,315 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pasaporte infantil — editor experimental</title>
+  <link rel="stylesheet" href="pasaporte-experimental.css?v=20260826_1140">
+  <style>
+    .logical .page { aspect-ratio: 4.25 / 5.5; min-height: 0; }
+    .print-panel .page { aspect-ratio: 4.25 / 5.5; }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <h1 id="projectTitle" contenteditable="true" spellcheck="false" title="Haz clic para editar el nombre del proyecto">Pasaporte</h1>
+      <p>Editor experimental · haz clic en el título para renombrarlo</p>
+    </div>
+    <button id="newProject" type="button">Nuevo</button>
+    <button id="openProject" type="button">Abrir</button>
+    <input id="projectFile" type="file" accept="application/json,.json" hidden>
+    <button id="save" type="button">Guardar</button>
+    <button id="print" type="button">Imprimir</button>
+    <button id="coverPrint" type="button">Imprimir portada</button>
+  </header>
+
+  <main>
+    <aside class="panel" aria-label="Panel de herramientas y configuración">
+      <div class="status" id="status" role="status" aria-live="polite">Cambios sin guardar</div>
+
+      <!-- Sección 1: Páginas y navegación -->
+      <details class="panel-section" open id="secPages">
+        <summary class="panel-summary"><h2>📑 Páginas y Miniaturas</h2></summary>
+        <div class="section-content">
+          <div id="thumbs" class="thumbs" aria-label="Miniaturas de páginas"></div>
+          <button id="add" type="button">＋ Agregar página</button>
+          <label for="addTemplate" class="visually-hidden" style="display:none;">Plantilla para nueva página</label>
+          <select id="addTemplate" aria-label="Plantilla para nueva página">
+            <option value="activity">Nueva actividad</option>
+            <option value="blank-frame">Marco sin texto</option>
+            <option value="blank-image">Fondo sin texto</option>
+            <option value="blank">Página completamente blanca</option>
+          </select>
+          <button id="removePage" class="danger" type="button">Quitar página</button>
+          <button id="confirmRemovePage" class="danger-confirm" type="button" hidden>Confirmar quitar página</button>
+        </div>
+      </details>
+
+      <!-- Sección 2: Edición rápida secuencial de todas las actividades e importación CSV -->
+      <details class="panel-section" open id="secActivitiesList">
+        <summary class="panel-summary"><h2>📋 Todas las Actividades (Edición y CSV)</h2></summary>
+        <div class="section-content">
+          <p class="hint">Modifica títulos y descripciones en secuencia, o importa/exporta tus actividades masivamente por CSV.</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="downloadCsvTemplate" type="button" style="flex:1;min-width:140px;background:#e2eff2;font-size:12px;padding:7px 8px;">📥 Descargar plantilla CSV</button>
+            <button id="importCsvBtn" type="button" style="flex:1;min-width:140px;background:#f5c59d;font-size:12px;padding:7px 8px;">📤 Importar CSV</button>
+            <input id="csvFileInput" type="file" accept=".csv,text/csv" hidden>
+          </div>
+          <div id="order" class="activities-list" aria-label="Lista de actividades editables"></div>
+          <button id="resetOrder" type="button">Restaurar orden original</button>
+        </div>
+      </details>
+
+      <!-- Sección 3: Organización interactiva de paneles por hoja de impresión -->
+      <details class="panel-section" id="secImposition">
+        <summary class="panel-summary"><h2>📐 Organización de Paneles en Hoja</h2></summary>
+        <div class="section-content">
+          <p class="hint">Configura qué página va en cada cuadrante (arriba/abajo, izquierda/derecha) de cada hoja impresa.</p>
+          <label>Orientación de pares / Espina del cuadernillo:
+            <select id="impositionSpineMode" aria-label="Orientación de pares del cuadernillo">
+              <option value="horizontal" selected>Horizontal (Lomo/corte horizontal — Pares en fila horizontal)</option>
+              <option value="vertical">Vertical (Lomo/corte vertical — Pares en columna vertical)</option>
+            </select>
+          </label>
+          <div id="sheetOrganizer" class="sheet-organizer" aria-label="Organizador de paneles de hoja"></div>
+          <button id="resetImposition" type="button">Restaurar imposición automática de cuadernillo</button>
+        </div>
+      </details>
+
+      <!-- Sección 4: Calibración y Centrado de Impresión Dúplex -->
+      <details class="panel-section" id="secCalibration">
+        <summary class="panel-summary"><h2>🎯 Centrado y Calibración en Hoja</h2></summary>
+        <div class="section-content">
+          <p class="hint">Ajusta el acercamiento de las 4 páginas hacia el cruce central de la hoja para que el frente y el reverso queden perfectamente alineados y sin desfase al imprimir a doble cara.</p>
+          
+          <label>Acercar al centro vertical / lomo (Eje X) <output id="centerShiftXOut">0 mm</output>
+            <input id="centerShiftX" type="range" min="-10" max="25" value="0" step="0.5" aria-label="Acercar al centro vertical">
+          </label>
+          
+          <label>Acercar al centro horizontal / corte (Eje Y) <output id="centerShiftYOut">0 mm</output>
+            <input id="centerShiftY" type="range" min="-10" max="25" value="0" step="0.5" aria-label="Acercar al centro horizontal">
+          </label>
+          
+          <label>Margen exterior de página <output id="outerMarginOut">4 mm</output>
+            <input id="outerMargin" type="range" min="0" max="15" value="4" step="0.5" aria-label="Margen exterior de página">
+          </label>
+
+          <label>Compensación frente/reverso (Offset X) <output id="backShiftXOut">0 mm</output>
+            <input id="backShiftX" type="range" min="-10" max="10" value="0" step="0.5" aria-label="Compensación de reverso dúplex">
+          </label>
+
+          <label class="inline">
+            <input id="showCutGuides" type="checkbox" checked> Mostrar guías de corte y doblez central
+          </label>
+
+          <button id="resetCalibration" type="button">Restaurar calibración estándar</button>
+        </div>
+      </details>
+
+      <!-- Sección 5: Ámbito de Aplicación de Cambios -->
+      <details class="panel-section" open id="secScope">
+        <summary class="panel-summary"><h2>🎯 Ámbito de Aplicación de Cambios</h2></summary>
+        <div class="section-content">
+          <p class="hint">Elige a qué páginas se aplicarán las configuraciones de diseño, colores, números, fuentes, posiciones e imágenes.</p>
+          <label>Aplicar cambios a:
+            <select id="applyScopeSelect" aria-label="Ámbito de aplicación de cambios">
+              <option value="single" selected>📌 Solo la página activa</option>
+              <option value="all">🌐 Todas las páginas (1 a N)</option>
+              <option value="activities">📋 Solo páginas de actividades (3 a N)</option>
+              <option value="custom">☑️ Selección múltiple personalizada...</option>
+            </select>
+          </label>
+          <div id="customScopeWrapper" class="custom-scope-wrapper hidden">
+            <div class="custom-scope-actions">
+              <button id="scopeSelectAll" type="button" class="btn-micro">Marcar todas</button>
+              <button id="scopeSelectActivities" type="button" class="btn-micro">Solo actividades</button>
+              <button id="scopeClearAll" type="button" class="btn-micro">Limpiar</button>
+            </div>
+            <div id="customScopeChips" class="scope-chips-grid" aria-label="Casillas de páginas seleccionadas"></div>
+          </div>
+        </div>
+      </details>
+
+      <!-- Sección 6: Configuración de página seleccionada -->
+      <details class="panel-section" open id="secSelected">
+        <summary class="panel-summary"><h2>✏️ Estilo, Marco y Número</h2></summary>
+        <div class="section-content">
+          <label>Plantilla
+            <select id="template" aria-label="Plantilla de página">
+              <option value="activity">Actividad</option>
+              <option value="identity">Información</option>
+              <option value="blank-frame">Marco sin texto</option>
+              <option value="blank-image">Fondo sin texto</option>
+              <option value="blank">En blanco</option>
+              <option value="cover">Portada</option>
+            </select>
+          </label>
+          <label>Tipo de hoja
+            <select id="material" aria-label="Tipo de material de la hoja">
+              <option value="activity">Actividad - papel normal</option>
+              <option value="cover">Portada - cartoncillo</option>
+            </select>
+          </label>
+          <label>Color del marco
+            <input id="frame" type="color" aria-label="Color del marco">
+          </label>
+          <label>Color de fondo
+            <input id="bgColor" type="color" aria-label="Color de fondo de la página">
+          </label>
+          <label class="inline">
+            <input id="showNumber" type="checkbox"> Mostrar número de página
+          </label>
+          <label>Posición del número
+            <select id="numberPosition" aria-label="Posición del número de página">
+              <option value="top-center">Arriba al centro (Predeterminado)</option>
+              <option value="top-left">Arriba a la izquierda</option>
+              <option value="top-right">Arriba a la derecha</option>
+              <option value="bottom-center">Abajo al centro</option>
+              <option value="bottom-left">Abajo a la izquierda</option>
+              <option value="bottom-right">Abajo a la derecha</option>
+            </select>
+          </label>
+        </div>
+      </details>
+
+      <!-- Sección 6: Contenido detallado y posición de textos -->
+      <details class="panel-section" open id="secContent">
+        <summary class="panel-summary"><h2>✍️ Contenido y Posición de Textos</h2></summary>
+        <div class="section-content" id="contentTools">
+          <label>Título
+            <input id="title" type="text" aria-label="Título de la actividad">
+          </label>
+          <label>Tamaño del título
+            <select id="titleSize" aria-label="Tamaño de letra del título">
+              <option value="12">12 px</option>
+              <option value="14">14 px</option>
+              <option value="16">16 px</option>
+              <option value="18">18 px</option>
+              <option value="20" selected>20 px</option>
+              <option value="24">24 px</option>
+              <option value="28">28 px</option>
+              <option value="32">32 px</option>
+            </select>
+          </label>
+          <label>Opacidad del título <output id="titleOpacityOut">100%</output>
+            <input id="titleOpacity" type="range" min="0" max="100" value="100" aria-label="Opacidad del título">
+          </label>
+          <label>Posición X del título <output id="titleXOut">0 mm</output>
+            <input id="titleX" type="range" min="-30" max="30" value="0" step="0.5" aria-label="Desplazamiento horizontal del título">
+          </label>
+          <label>Posición Y del título <output id="titleYOut">0 mm</output>
+            <input id="titleY" type="range" min="-30" max="30" value="0" step="0.5" aria-label="Desplazamiento vertical del título">
+          </label>
+
+          <hr style="border:0;border-top:1px solid #dce8eb;margin:4px 0;">
+
+          <label>Descripción
+            <textarea id="description" aria-label="Descripción de la actividad"></textarea>
+          </label>
+          <label>Tamaño de la descripción
+            <select id="descriptionSize" aria-label="Tamaño de letra de la descripción">
+              <option value="8">8 px</option>
+              <option value="10">10 px</option>
+              <option value="12" selected>12 px</option>
+              <option value="14">14 px</option>
+              <option value="16">16 px</option>
+              <option value="18">18 px</option>
+              <option value="20">20 px</option>
+            </select>
+          </label>
+          <label>Opacidad de la descripción <output id="descriptionOpacityOut">100%</output>
+            <input id="descriptionOpacity" type="range" min="0" max="100" value="100" aria-label="Opacidad de la descripción">
+          </label>
+          <label>Posición X de la descripción <output id="descriptionXOut">0 mm</output>
+            <input id="descriptionX" type="range" min="-30" max="30" value="0" step="0.5" aria-label="Desplazamiento horizontal de la descripción">
+          </label>
+          <label>Posición Y de la descripción <output id="descriptionYOut">0 mm</output>
+            <input id="descriptionY" type="range" min="-30" max="30" value="0" step="0.5" aria-label="Desplazamiento vertical de la descripción">
+          </label>
+
+          <button id="resetTextPos" type="button">Centrar posiciones de textos</button>
+        </div>
+      </details>
+
+      <!-- Sección 8: Sello de Realizado -->
+      <details class="panel-section" open id="secStamp">
+        <summary class="panel-summary"><h2>💮 Sello de Realizado</h2></summary>
+        <div class="section-content">
+          <label>Texto del sello
+            <input id="stamp" type="text" aria-label="Texto del sello" value="SELLO · REALIZADO">
+          </label>
+          <label class="inline">
+            <input id="showStamp" type="checkbox" checked> Mostrar sello en esta actividad
+          </label>
+          <label>Icono / Imagen del sello
+            <input id="stampImage" type="file" accept="image/*" aria-label="Cargar imagen de sello">
+          </label>
+          <label>Escala del sello <output id="stampScaleOut">100%</output>
+            <input id="stampScale" type="range" min="40" max="160" value="100" aria-label="Escala del sello">
+          </label>
+          <label>Posición X del sello <output id="stampXOut">0 mm</output>
+            <input id="stampX" type="range" min="-30" max="30" value="0" step="0.5" aria-label="Posición horizontal del sello">
+          </label>
+          <label>Posición Y del sello <output id="stampYOut">0 mm</output>
+            <input id="stampY" type="range" min="-20" max="20" value="0" step="0.5" aria-label="Posición vertical del sello">
+          </label>
+          <label>Opacidad del sello <output id="stampOpacityOut">100%</output>
+            <input id="stampOpacity" type="range" min="0" max="100" value="100" aria-label="Opacidad del sello">
+          </label>
+          <button id="resetStamp" type="button">Restaurar sello estándar</button>
+        </div>
+      </details>
+
+      <!-- Sección 9: Imagen y fondo -->
+      <details class="panel-section" id="secImage">
+        <summary class="panel-summary"><h2>🖼️ Imagen y Ajustes Visuales</h2></summary>
+        <div class="section-content">
+          <label>Archivo
+            <input id="image" type="file" accept="image/*" aria-label="Cargar imagen de fondo">
+          </label>
+          <label>Escala <output id="scaleOut">90%</output>
+            <input id="scale" type="range" min="40" max="140" aria-label="Escala de imagen">
+          </label>
+          <label>Posición X <output id="xOut">0%</output>
+            <input id="x" type="range" min="-50" max="50" aria-label="Posición horizontal de imagen">
+          </label>
+          <label>Posición Y <output id="yOut">0%</output>
+            <input id="y" type="range" min="-50" max="50" aria-label="Posición vertical de imagen">
+          </label>
+          <label>Opacidad <output id="opacityOut">23%</output>
+            <input id="opacity" type="range" min="0" max="100" aria-label="Opacidad de imagen">
+          </label>
+          <button id="center" type="button">Centrar imagen</button>
+        </div>
+      </details>
+    </aside>
+
+    <article class="workspace" aria-label="Área de trabajo del pasaporte">
+      <nav aria-label="Vistas del documento">
+        <button class="active" data-view="logical" type="button">Vista lógica</button>
+        <button data-view="printView" type="button">Vista de impresión</button>
+      </nav>
+      <div id="logical" class="logical"></div>
+      <div id="printView" class="hidden"></div>
+    </article>
+  </main>
+
+  <script>
+    /* Safe localStorage wrapper */
+    (() => {
+      const set = Storage.prototype.setItem;
+      Storage.prototype.setItem = function(k, v) {
+        try {
+          return set.call(this, k, v);
+        } catch (error) {
+          console.warn('Almacenamiento local no disponible', error);
+          return undefined;
+        }
+      };
+    })();
+  </script>
+  <script src="experimental-passport-browser.js?v=20260826_1140"></script>
+  <script src="pasaporte-experimental.js?v=20260826_1140"></script>
+</body>
+</html>

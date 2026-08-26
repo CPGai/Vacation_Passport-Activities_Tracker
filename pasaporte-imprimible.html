@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pasaporte infantil — impresión</title>
+  <style>
+    :root { --blue:#edf8fa; --ink:#173b4d; --accent:#d52f32; --muted:#7194a0; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:#eef2f3; color:var(--ink); font-family:Arial, sans-serif; }
+    .toolbar { position:sticky; top:0; z-index:5; padding:12px 18px; background:#173b4d; color:white; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .toolbar button, .toolbar select { border:0; border-radius:8px; padding:9px 13px; background:#f5c59d; color:#173b4d; font-weight:700; cursor:pointer; }
+    .toolbar button.secondary { background:#edf8fa; }
+    .watermark-tools { display:flex; gap:7px; align-items:center; flex-wrap:wrap; width:100%; font-size:11px; }
+    .watermark-tools label { display:flex; gap:4px; align-items:center; }
+    .watermark-tools input[type="range"] { width:90px; }
+    .toolbar small { opacity:.85; }
+    body.editing [contenteditable="true"] { outline:2px dashed #d52f32; outline-offset:3px; cursor:text; }
+    [contenteditable="true"]:focus { outline:2px solid #d52f32 !important; }
+    .sheet { width:8.5in; height:11in; margin:24px auto; background:white; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr 1fr; position:relative; overflow:hidden; page-break-after:always; }
+    .sheet::before, .sheet::after { content:""; position:absolute; z-index:4; pointer-events:none; }
+    .sheet::before { left:50%; top:0; bottom:0; border-left:1px dashed #aabfc5; }
+    .sheet::after { top:50%; left:0; right:0; border-top:1px dashed #aabfc5; }
+    .page { position:relative; margin:0.16in; padding:0.12in; border:1px solid #a9c4cc; border-radius:12px; background:var(--blue); overflow:hidden; text-align:center; isolation:isolate; }
+    .page-number { position:absolute; z-index:3; top:0.08in; left:0.1in; right:0.1in; font-size:9px; font-weight:700; color:var(--accent); letter-spacing:.04em; }
+    .page h2, .page p { position:relative; z-index:2; display:table; margin-left:auto; margin-right:auto; background:rgba(237,248,250,.9); border-radius:5px; padding:2px 7px; }
+    .page h2 { margin-top:0.28in; margin-bottom:.08in; font-size:18px; line-height:1.08; }
+    .page p { margin-top:.05in; margin-bottom:.05in; font-size:11px; line-height:1.18; color:#2d7891; }
+    .watermark { position:absolute; z-index:0; left:5%; top:5%; width:90%; height:90%; object-fit:contain; opacity:.23; filter:saturate(.65); mix-blend-mode:multiply; }
+    .stamp-box { position:absolute; z-index:3; left:12%; right:12%; bottom:8%; height:19%; border:1.5px solid var(--accent); border-radius:10px; background:rgba(255,255,255,.86); text-align:left; }
+    .stamp-box img { position:absolute; width:29%; height:130%; left:-4%; top:-15%; object-fit:contain; mix-blend-mode:multiply; }
+    .stamp-label { position:absolute; left:30%; top:27%; font-size:11px; font-weight:700; color:var(--accent); }
+    .stamp-sub { position:absolute; left:30%; top:52%; font-size:10px; color:#667780; font-weight:700; }
+    .cover h2 { font-size:25px; margin-top:.5in; }
+    .cover .watermark { opacity:.14; }
+    .cover p { font-size:14px; font-weight:700; color:var(--accent); }
+    .identity h2 { margin-top:.5in; font-size:20px; }
+    .identity .fields { margin: .35in .2in; text-align:left; font-size:14px; line-height:2; font-weight:700; }
+    .identity .watermark { opacity:1; }
+    @media print {
+      @page { size:Letter portrait; margin:0; }
+      body { background:white; }
+      .toolbar { display:none; }
+      .sheet { margin:0; width:8.5in; height:11in; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <button id="editButton" class="secondary" onclick="toggleEditing()">Activar edición</button>
+    <button class="secondary" onclick="saveChanges()">Guardar cambios</button>
+    <button class="secondary" onclick="resetChanges()">Restaurar textos</button>
+    <select id="pagePicker" onchange="goToPage(this.value)"><option value="">Ir a página…</option></select>
+    <button onclick="window.print()">Imprimir pasaporte</button>
+    <small>Letter · vertical · escala 100% · doble cara · voltear por el borde largo</small>
+    <div class="watermark-tools">
+      <strong>Marca de agua:</strong>
+      <input id="watermarkFile" type="file" accept="image/*" onchange="replaceWatermark(event)">
+      <select id="watermarkTarget"><option value="all">Todas las páginas</option><option value="current">Página seleccionada</option></select>
+      <label>Escala <input id="wmScale" type="range" min="40" max="140" value="90" oninput="updateWatermark()"><output id="wmScaleOut">90%</output></label>
+      <label>X <input id="wmX" type="range" min="-20" max="20" value="0" oninput="updateWatermark()"><output id="wmXOut">0%</output></label>
+      <label>Y <input id="wmY" type="range" min="-20" max="20" value="0" oninput="updateWatermark()"><output id="wmYOut">0%</output></label>
+      <label>Opacidad <input id="wmOpacity" type="range" min="0" max="100" value="23" oninput="updateWatermark()"><output id="wmOpacityOut">23%</output></label>
+      <button class="secondary" onclick="centerWatermark()">Centrar</button>
+    </div>
+    <div class="watermark-tools">
+      <strong>Imposición:</strong>
+      <label>Páginas <input id="pageCount" type="number" min="2" step="2" value="12"></label>
+      <button class="secondary" onclick="calculateImposition()">Calcular orden</button>
+      <span id="impositionResult">12 páginas: 12–1 / 10–3 · reverso 2–11 / 4–9</span>
+    </div>
+    <div class="watermark-tools">
+      <strong>Editar actividad:</strong>
+      <select id="activityPage"><option value="">Página…</option></select>
+      <input id="activityTitle" placeholder="Actividad principal">
+      <input id="activityDescription" placeholder="Descripción">
+      <input id="activityStamp" placeholder="Texto del sello" value="SELLO · REALIZADO">
+      <button class="secondary" onclick="saveActivity()">Aplicar actividad</button>
+      <button class="secondary" onclick="clearPage2Fields()">Limpiar campos de página 2</button>
+    </div>
+  </div>
+
+  <!-- Hoja 1: 12–1 arriba; 10–3 abajo -->
+  <section class="sheet" aria-label="Hoja 1">
+    <article class="page" data-page="12"><span class="page-number" contenteditable="true">PÁGINA 12</span><h2 contenteditable="true">Water Park</h2><p contenteditable="true">Prepárate para mojarte y divertirte.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+    <article class="page cover" data-page="1"><span class="page-number" contenteditable="true">PÁGINA 1</span><h2 contenteditable="true">MI PASAPORTE</h2><p contenteditable="true">AVENTURAS EN CANADÁ</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><p contenteditable="true" style="position:absolute;bottom:12%;left:0;right:0;color:var(--ink)">Nombre: ANDRÉS</p></article>
+    <article class="page" data-page="10"><span class="page-number" contenteditable="true">PÁGINA 10</span><h2 contenteditable="true">Clifton Hill</h2><p contenteditable="true">Elige tu atracción favorita.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+    <article class="page" data-page="3"><span class="page-number" contenteditable="true">PÁGINA 3</span><h2 contenteditable="true">Cataratas del Niágara</h2><p contenteditable="true">Mira el agua caer y encuentra tu mejor vista.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+  </section>
+
+  <!-- Hoja 2: 2–11 arriba; 4–9 abajo. Espejo de la hoja 1 -->
+  <section class="sheet" aria-label="Hoja 2">
+    <article class="page identity" data-page="2"><span class="page-number" contenteditable="true">PÁGINA 2</span><h2 contenteditable="true">DATOS DEL VIAJERO</h2><div class="fields" contenteditable="true">Nombre: Andrés<br>País: México<br>Explorador: __________</div><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"></article>
+    <article class="page" data-page="11"><span class="page-number" contenteditable="true">PÁGINA 11</span><h2 contenteditable="true">Little Beach</h2><p contenteditable="true">Juega, camina y disfruta la playa.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label" contenteditable="true">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+    <article class="page" data-page="4"><span class="page-number" contenteditable="true">PÁGINA 4</span><h2 contenteditable="true">ROM</h2><p contenteditable="true">Descubre algo nuevo en el museo.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+    <article class="page" data-page="9"><span class="page-number" contenteditable="true">PÁGINA 9</span><h2 contenteditable="true">Whirlpool</h2><p contenteditable="true">Observa cómo gira el agua.</p><img class="watermark" src="Picture4 passport back.png" alt="Marca de agua de pasaporte"><div class="stamp-box"><img src="Picture1 stamp.png" alt="Sello Welcome Canada"><span class="stamp-label">SELLO · REALIZADO</span><span class="stamp-sub">Actividad completada</span></div></article>
+  </section>
+  <script>
+    const editable = [...document.querySelectorAll('[contenteditable="true"]')];
+    const storageKey = 'pasaporte-infantil-textos-v1';
+    const watermarkStorageKey = 'pasaporte-infantil-marca-agua-v1';
+    const original = editable.map((el, i) => ({ i, html: el.innerHTML }));
+    const picker = document.getElementById('pagePicker');
+    const activityPicker = document.getElementById('activityPage');
+    [...document.querySelectorAll('.page[data-page]')].sort((a,b)=>+a.dataset.page-+b.dataset.page).forEach(p => {
+      const o = document.createElement('option'); o.value=p.dataset.page; o.textContent='Página '+p.dataset.page; picker.appendChild(o);
+      if(+p.dataset.page>=3){ const a=o.cloneNode(true); activityPicker.appendChild(a); }
+    });
+    function toggleEditing(){ document.body.classList.toggle('editing'); document.getElementById('editButton').textContent=document.body.classList.contains('editing')?'Edición activa':'Activar edición'; }
+    function saveChanges(){ localStorage.setItem(storageKey, JSON.stringify(editable.map(el=>el.innerHTML))); alert('Cambios guardados en este navegador.'); }
+    function loadChanges(){ try { const saved=JSON.parse(localStorage.getItem(storageKey)); if(saved) editable.forEach((el,i)=>{if(saved[i]!==undefined)el.innerHTML=saved[i];}); } catch(e){} }
+    function resetChanges(){ if(!confirm('¿Restaurar los textos originales?')) return; original.forEach(x=>editable[x.i].innerHTML=x.html); localStorage.removeItem(storageKey); }
+    function goToPage(n){ const el=document.querySelector('.page[data-page="'+n+'"]'); if(el) el.scrollIntoView({behavior:'smooth',block:'center'}); }
+    function calculateImposition(){
+      const n=Number(document.getElementById('pageCount').value); const out=document.getElementById('impositionResult');
+      if(!Number.isInteger(n)||n<2||n%2){ out.textContent='Usa un número par de páginas, mínimo 2.'; return; }
+      const front=[], back=[]; let left=n, right=1;
+      while(left>right){ front.push(left+'–'+right); back.push((right+1)+'–'+(left-1)); left-=2; right+=2; }
+      out.textContent=n+' páginas: frente '+front.join(' · ')+'; reverso '+back.join(' · ');
+    }
+    function saveActivity(){
+      const n=document.getElementById('activityPage').value; if(!n)return;
+      const page=document.querySelector('.page[data-page="'+n+'"]'); if(!page)return;
+      const title=document.getElementById('activityTitle').value.trim(), desc=document.getElementById('activityDescription').value.trim(), stampText=document.getElementById('activityStamp').value.trim();
+      if(title) page.querySelector('h2').innerHTML=title;
+      if(desc) page.querySelector('p').innerHTML=desc;
+      if(stampText) page.querySelector('.stamp-label').innerHTML=stampText;
+      saveChanges();
+    }
+    function clearPage2Fields(){
+      const fields=document.querySelector('.page[data-page="2"] .fields'); if(fields){ fields.innerHTML=''; fields.focus(); }
+      saveChanges();
+    }
+    function selectedPages(){
+      const target=document.getElementById('watermarkTarget').value;
+      if(target==='all') return [...document.querySelectorAll('.watermark')];
+      const n=document.getElementById('pagePicker').value;
+      const page=document.querySelector('.page[data-page="'+n+'"]');
+      return page ? [page.querySelector('.watermark')] : [];
+    }
+    function updateWatermark(){
+      const scale=+document.getElementById('wmScale').value, x=+document.getElementById('wmX').value, y=+document.getElementById('wmY').value, opacity=+document.getElementById('wmOpacity').value;
+      document.getElementById('wmScaleOut').value=scale+'%'; document.getElementById('wmXOut').value=x+'%'; document.getElementById('wmYOut').value=y+'%'; document.getElementById('wmOpacityOut').value=opacity+'%';
+      selectedPages().forEach(img=>{ if(!img)return; img.style.width=scale+'%'; img.style.height=scale+'%'; img.style.left=(50-scale/2+x)+'%'; img.style.top=(50-scale/2+y)+'%'; img.style.opacity=img.closest('.identity')?'1':opacity/100; });
+      localStorage.setItem(watermarkStorageKey, JSON.stringify({scale,x,y,opacity}));
+    }
+    function centerWatermark(){ document.getElementById('wmX').value=0; document.getElementById('wmY').value=0; updateWatermark(); }
+    function replaceWatermark(event){
+      const file=event.target.files[0]; if(!file)return; const reader=new FileReader();
+      reader.onload=()=>{ selectedPages().forEach(img=>{if(img)img.src=reader.result;}); localStorage.setItem(watermarkStorageKey+'-image',reader.result); };
+      reader.readAsDataURL(file);
+    }
+    function loadWatermark(){
+      try { const saved=JSON.parse(localStorage.getItem(watermarkStorageKey)); if(saved){ ['wmScale','wmX','wmY','wmOpacity'].forEach(k=>{if(saved[k]!==undefined)document.getElementById(k).value=saved[k];}); updateWatermark(); } const image=localStorage.getItem(watermarkStorageKey+'-image'); if(image)document.querySelectorAll('.watermark').forEach(img=>img.src=image); } catch(e){}
+    }
+    loadChanges();
+    loadWatermark();
+  </script>
+</body>
+</html>
+
+
