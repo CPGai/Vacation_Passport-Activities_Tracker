@@ -1,6 +1,6 @@
 # PRD — Pasaporte infantil imprimible
 
-**Versión:** 2.2 — Especificación funcional y técnica completa (Spec-Driven Development)  
+**Versión:** 2.3 — Especificación funcional y técnica completa (Spec-Driven Development)  
 **Estado:** Activo e Implementado en rama `pasaporte-experimental.html`  
 **Producto:** Generador/editor de pasaportes infantiles interactivo para visitas y viajes familiares
 
@@ -189,6 +189,7 @@ El número de hojas plegadas (*leaves*) es $L = \lceil M / 4 \rceil$. Para cada 
 
 * **Formato de Archivo:** JSON local que serializa el árbol completo del documento (`pages`, `customImposition`, `printCalibration`, `projectName`).
 * **Autoguardado en Navegador:** `localStorage` bajo la clave `pasaporte-experimental-v1`.
+* **Identidad Gráfica y Favicon:** Icono vectorial SVG (`favicon.svg`) con diseño de cuadernillo de pasaporte, globo terráqueo y avión dorado, optimizado para pestañas claras y oscuras.
 * **Sin Dependencias Externas:** Funciona localmente en cualquier navegador moderno mediante scripts tradicionales sin requerir servidor HTTP ni bundlers.
 
 ---
@@ -198,10 +199,12 @@ El número de hojas plegadas (*leaves*) es $L = \lceil M / 4 \rceil$. Para cada 
 Toda modificación debe satisfacer el 100% de las pruebas automatizadas ejecutadas con `node --test tests/*.test.mjs`:
 
 1. **Creación y Protección de Páginas Especiales:** Páginas 1 y 2 protegidas contra reordenamiento y eliminación.
-2. **Imposición de Cuadernillo y Separación de Materiales:** Cálculo correcto de frentes y reversos para cartoncillo y papel normal.
+2. **Imposición de Cuadernillo y Separación de Materiales:** Cálculo correcto de frentes y reversos para cartoncillo y papel normal con modos horizontal y vertical.
 3. **Reorganización Personalizada de Paneles:** Asignación y swapping de cuadrantes en `customImposition`.
 4. **Calibración y Desplazamientos Dúplex:** Definición y aplicación de variables CSS de calibración y traslación de cuadrantes.
 5. **Ajuste de Posición X/Y y Número de Página:** Desplazamientos de textos en milímetros y posicionamiento en 6 puntos del número.
 6. **Supresión de Cajas Fantasma en Blanco:** Verificación de reglas `:empty` en hojas sin texto.
 7. **Plantilla y Analizador CSV:** Descarga de plantilla oficial e importación masiva con creación de páginas y centrado de imágenes.
 8. **Contratos HTML/CSS y Cero Regresiones:** Estructura completa de menús, selectores, botones y estilos libres de duplicación.
+9. **Sincronización Tipográfica Universal:** Propagación dinámica de tamaños de fuente (`fontSize.title` y `fontSize.description`) tanto en vista lógica como en vista de imposición e impresión sin bloqueos por `!important`.
+10. **Selector de Alcance Multipágina:** Aplicación granular de propiedades a página única, todas, actividades o selección múltiple interactiva.

@@ -1,8 +1,8 @@
-﻿# Vacation Passport & Activities Tracker ✈️📖
+# Vacation Passport & Activities Tracker ✈️📖
 ### *Generador y Editor Imprimible de Pasaportes Infantiles para Viajes y Vacaciones*
 
-[![Tests](https://img.shields.io/badge/Tests-34%20Passing-brightgreen.svg)](tests/)
-[![Spec Version](https://img.shields.io/badge/PRD%20Spec-v2.2-blue.svg)](PRD-pasaporte-infantil.md)
+[![Tests](https://img.shields.io/badge/Tests-35%20Passing-brightgreen.svg)](tests/)
+[![Spec Version](https://img.shields.io/badge/PRD%20Spec-v2.3-blue.svg)](PRD-pasaporte-infantil.md)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Zero Dependencies](https://img.shields.io/badge/Dependencies-Zero%20(Vanilla%20JS)-orange.svg)](pasaporte-experimental.js)
 
@@ -93,9 +93,10 @@ Run the test suite using Node.js built-in test runner:
 node --test tests/*.test.mjs
 `
 
-All 34 automated unit and contract tests verify:
+All 35 automated unit and contract tests verify:
 * Document lifecycle and page protection (Cover & Identity).
 * 4-Up signature booklet imposition and material isolation.
+* Dynamic print typography synchronization (`fontSize.title` and `fontSize.description`).
 * Custom panel reorganization and drag-and-drop swapping.
 * Duplex print calibration and cut-guide rendering.
 * CSV parsing, path normalization, and import mechanics.
@@ -105,25 +106,28 @@ All 34 automated unit and contract tests verify:
 ---
 
 ## 📂 Project Structure
-```
-`	ext
-├── pasaporte-experimental.html   # Main application interface
-├── pasaporte-experimental.css    # Responsive styles and print media rules
-├── pasaporte-experimental.js     # Reactive UI controller and event engine
-├── experimental-passport-core.js # Pure functional imposition & document model (ESM)
+
+```text
+├── pasaporte-experimental.html      # Main application interface
+├── pasaporte-experimental.css       # Responsive styles and print media rules
+├── pasaporte-experimental.js        # Reactive UI controller and event engine
+├── experimental-passport-core.js    # Pure functional imposition & document model (ESM)
 ├── experimental-passport-browser.js # Browser-compatible core runtime
-├── PRD-pasaporte-infantil.md     # Product Requirement Document (Spec v2.2)
-├── tests/                        # Automated unit & integration tests
+├── favicon.svg                      # Vector SVG passport & globe favicon
+├── PRD-pasaporte-infantil.md        # Product Requirement Document (Spec v2.3)
+├── CHANGELOG.md                     # Semantic versioning changelog
+├── tests/                           # Automated unit & integration tests
 │   ├── experimental-passport-core.test.mjs
 │   ├── experimental-ui-ux.test.mjs
 │   ├── imposition-regression.test.mjs
 │   └── media-regression.test.mjs
-├── background images/            # Default sample activity images
-└── Versiones/                    # Stamp artwork and CSV activity templates
-`
+├── background images/               # Default sample activity images
+└── Versiones/                       # Stamp artwork and CSV activity templates
 ```
+
 ---
 
-## 📄 License
+## 📄 License & History
 
-This project is licensed under the [MIT License](LICENSE).
+* Changelog: See [CHANGELOG.md](CHANGELOG.md) for full version history.
+* License: This project is licensed under the [MIT License](LICENSE).
