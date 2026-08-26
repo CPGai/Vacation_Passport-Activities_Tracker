@@ -147,8 +147,8 @@ function pageMarkup(p, isPrint = false) {
   const bgColor = p.backgroundColor || (p.kind !== 'activity' ? '#fff8ea' : '#edf8fa');
 
   // Avoid empty tags on blank pages to eliminate ghost boxes
-  const titleStyle = `opacity:${(p.textOpacity?.title ?? 100) / 100};transform:translate(${p.textPosition?.titleX || 0}mm, ${p.textPosition?.titleY || 0}mm);`;
-  const descStyle = `opacity:${(p.textOpacity?.description ?? 100) / 100};transform:translate(${p.textPosition?.descriptionX || 0}mm, ${p.textPosition?.descriptionY || 0}mm);`;
+  const titleStyle = `opacity:${(p.textOpacity?.title ?? 100) / 100};transform:translate(${p.textPosition?.titleX || 0}mm, ${p.textPosition?.titleY || 0}mm);font-size:${p.fontSize?.title || 20}px;`;
+  const descStyle = `opacity:${(p.textOpacity?.description ?? 100) / 100};transform:translate(${p.textPosition?.descriptionX || 0}mm, ${p.textPosition?.descriptionY || 0}mm);font-size:${p.fontSize?.description || 12}px;`;
 
   const titleHtml = (!isBlank || effectiveTitle)
     ? `<h2 contenteditable="${!isBlank && !isPrint}" data-field="title" style="${titleStyle}">${esc(effectiveTitle)}</h2>`
@@ -189,16 +189,12 @@ function applyTextStyles() {
     if (title) {
       title.style.opacity = (p.textOpacity?.title ?? 100) / 100;
       title.style.transform = `translate(${p.textPosition?.titleX || 0}mm, ${p.textPosition?.titleY || 0}mm)`;
-      if (el.closest('.logical')) {
-        title.style.fontSize = p.fontSize.title + 'px';
-      }
+      title.style.fontSize = (p.fontSize?.title || 20) + 'px';
     }
     if (description) {
       description.style.opacity = (p.textOpacity?.description ?? 100) / 100;
       description.style.transform = `translate(${p.textPosition?.descriptionX || 0}mm, ${p.textPosition?.descriptionY || 0}mm)`;
-      if (el.closest('.logical')) {
-        description.style.fontSize = p.fontSize.description + 'px';
-      }
+      description.style.fontSize = (p.fontSize?.description || 12) + 'px';
     }
   });
 }
@@ -255,6 +251,19 @@ function updateTextOpacityLive(p) {
     }
     if (description) {
       description.style.opacity = ((p.textOpacity?.description ?? 100) / 100);
+    }
+  });
+}
+
+function updateFontSizeLive(p) {
+  document.querySelectorAll(`.page[data-n="${p.number}"]`).forEach(card => {
+    const title = card.querySelector('[data-field="title"]');
+    const description = card.querySelector('[data-field="description"]');
+    if (title && p.fontSize?.title) {
+      title.style.fontSize = p.fontSize.title + 'px';
+    }
+    if (description && p.fontSize?.description) {
+      description.style.fontSize = p.fontSize.description + 'px';
     }
   });
 }
@@ -944,8 +953,25 @@ function initEventListeners() {
   $('bgColor').oninput = editForm;
   $('showNumber').onchange = editForm;
   $('numberPosition').onchange = editForm;
-  $('titleSize').onchange = editForm;
-  $('descriptionSize').onchange = editForm;
+  const onFontSizeInput = () => {
+    const targets = getActiveTargetPages();
+    const tSize = +$('titleSize').value;
+    const dSize = +$('descriptionSize').value;
+    targets.forEach(p => {
+      ensurePageProperties(p);
+      if (tSize) p.fontSize.title = tSize;
+      if (dSize) p.fontSize.description = dSize;
+      updateFontSizeLive(p);
+    });
+    mark();
+  };
+
+  ['titleSize', 'descriptionSize'].forEach(id => {
+    const el = $(id);
+    if (!el) return;
+    el.oninput = onFontSizeInput;
+    el.onchange = onFontSizeInput;
+  });
 
   $('titleOpacity').oninput = () => {
     const targets = getActiveTargetPages();

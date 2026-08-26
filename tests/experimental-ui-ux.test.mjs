@@ -448,3 +448,17 @@ test('HTML and CSS contracts for Multi-Page Scope selector, chip container and p
   assert.match(cssContent, /\.scope-chip\.checked/, 'CSS defines .scope-chip.checked');
   assert.match(cssContent, /\.thumb\.scope-active/, 'CSS defines .thumb.scope-active');
 });
+
+test('font size settings apply to both logical and print views without CSS !important override', () => {
+  const cssContent = fs.readFileSync(path.resolve('pasaporte-experimental.css'), 'utf8');
+  const jsContent = fs.readFileSync(path.resolve('pasaporte-experimental.js'), 'utf8');
+
+  // Verify CSS does NOT override print-panel page h2/p with hardcoded !important
+  assert.ok(!cssContent.includes('.print-panel .page h2 {\n  font-size: 13px !important;'), 'No hardcoded font-size !important on print-panel h2');
+  assert.ok(!cssContent.includes('.print-panel .page p {\n  font-size: 8.5px !important;'), 'No hardcoded font-size !important on print-panel p');
+
+  // Verify JS applyTextStyles sets fontSize on all views
+  assert.match(jsContent, /updateFontSizeLive/, 'JS provides live font size updater');
+  assert.match(jsContent, /title\.style\.fontSize\s*=\s*\(p\.fontSize\?\.title\s*\|\|\s*20\)\s*\+\s*'px'/, 'applyTextStyles sets dynamic title font size for all views');
+  assert.match(jsContent, /description\.style\.fontSize\s*=\s*\(p\.fontSize\?\.description\s*\|\|\s*12\)\s*\+\s*'px'/, 'applyTextStyles sets dynamic description font size for all views');
+});
