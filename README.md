@@ -50,14 +50,14 @@ Children receive a physical booklet with a dedicated page per activity where the
 ### Quick Start (No Installation Required)
 
 1. Clone or download this repository:
-   `ash
+   `In PowerShell (or CMD / Bash), run:
    git clone https://github.com/CPGai/Vacation_Passport-Activities_Tracker.git
    cd Vacation_Passport-Activities_Tracker
    `
 2. Open pasaporte-experimental.html directly in any modern web browser (Chrome, Edge, Firefox, Safari):
    * **Directly:** Double-click pasaporte-experimental.html, or
    * **Local Web Server (Recommended):**
-     `ash
+     `In PowerShell run:
      python -m http.server 8000
      `
      Navigate to: [http://localhost:8000/pasaporte-experimental.html](http://localhost:8000/pasaporte-experimental.html)
