@@ -9,10 +9,37 @@
 Thumbs.db
 desktop.ini
 
-# Scratch and intermediate review directories
+# Office and personal documents
+*.xlsx
+*.docx
+*.pptx
+
+# Generated PDFs and personal PDF references
+*.pdf
+Versiones/Impresiones PDF/
+
+# PowerPoint slide dumps and scratch mockups
+Versiones/**/slide-*.png
+_html_assets/
+_html_assets.png
 _review_tmp/
 _review2/
 *.inspect.ndjson
+
+# Personal child photos and sensitive images
+background images/Andre foto*
+background images/*passport Andre*
+background images/WhatsApp*
+background images/Screenshot*
+
+# Unused legacy mockups
+Versiones/Picture 4 page .png
+Versiones/Picture2 sello .png
+Versiones/Picture4 passport back.png
+
+# Internal planning notes
+IDEA.md
+docs/superpowers/
 
 # Dependencies
 node_modules/
